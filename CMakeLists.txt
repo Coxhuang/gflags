@@ -90,7 +90,7 @@ include ("${CMAKE_CURRENT_SOURCE_DIR}/cmake/utils.cmake")
 
 # ----------------------------------------------------------------------------
 # package information
-set (PACKAGE_NAME        "trunk_gflags")
+set (PACKAGE_NAME        "tmaps_gflags")
 set (PACKAGE_VERSION     "2.2.2")
 set (PACKAGE_STRING      "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set (PACKAGE_TARNAME     "${PACKAGE_NAME}-${PACKAGE_VERSION}")
