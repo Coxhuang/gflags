@@ -1,5 +1,6 @@
 /xcode/
 /build/
+.idea/
 /builds/
 /build-*/
 /_build/

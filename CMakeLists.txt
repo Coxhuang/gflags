@@ -90,7 +90,7 @@ include ("${CMAKE_CURRENT_SOURCE_DIR}/cmake/utils.cmake")
 
 # ----------------------------------------------------------------------------
 # package information
-set (PACKAGE_NAME        "gflags")
+set (PACKAGE_NAME        "trunk_gflags")
 set (PACKAGE_VERSION     "2.2.2")
 set (PACKAGE_STRING      "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set (PACKAGE_TARNAME     "${PACKAGE_NAME}-${PACKAGE_VERSION}")
@@ -107,6 +107,9 @@ if (CMAKE_VERSION VERSION_LESS 3.4)
   # - FindThreads.cmake   (fixed in CMake 3.4, cf. https://cmake.org/Bug/view.php?id=14905)
   enable_language (C)
 endif ()
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+include(cmake/cater.cmake)
 
 version_numbers (
   ${PACKAGE_VERSION}
@@ -172,9 +175,9 @@ gflags_define (BOOL BUILD_SHARED_LIBS          "Request build of shared librarie
 gflags_define (BOOL BUILD_STATIC_LIBS          "Request build of static libraries (default if BUILD_SHARED_LIBS is OFF)." OFF ON)
 gflags_define (BOOL BUILD_gflags_LIB           "Request build of the multi-threaded gflags library."                      ON  OFF)
 gflags_define (BOOL BUILD_gflags_nothreads_LIB "Request build of the single-threaded gflags library."                     ON  ON)
-gflags_define (BOOL BUILD_PACKAGING            "Enable build of distribution packages using CPack."                       OFF OFF)
+gflags_define (BOOL BUILD_PACKAGING            "Enable build of distribution packages using CPack."                       ON ON)
 gflags_define (BOOL BUILD_TESTING              "Enable build of the unit tests and their execution using CTest."          OFF OFF)
-gflags_define (BOOL INSTALL_HEADERS            "Request installation of headers and other development files."             ON  OFF)
+gflags_define (BOOL INSTALL_HEADERS            "Request installation of headers and other development files."             OFF  OFF)
 gflags_define (BOOL INSTALL_SHARED_LIBS        "Request installation of shared libraries."                                ON  ON)
 gflags_define (BOOL INSTALL_STATIC_LIBS        "Request installation of static libraries."                                ON  OFF)
 gflags_define (BOOL REGISTER_BUILD_DIR         "Request entry of build directory in CMake's package registry."            OFF OFF)
@@ -605,32 +608,155 @@ if (BUILD_TESTING)
   add_subdirectory (test)
 endif ()
 
-# ----------------------------------------------------------------------------
+## ----------------------------------------------------------------------------
+## packaging
+#if (BUILD_PACKAGING)
+#
+#  if (NOT BUILD_SHARED_LIBS AND NOT INSTALL_HEADERS)
+#    message (WARNING "Package will contain static libraries without headers!"
+#                     "\nRecommended options for generation of runtime package:"
+#                     "\n  BUILD_SHARED_LIBS=ON"
+#                     "\n  BUILD_STATIC_LIBS=OFF"
+#                     "\n  INSTALL_HEADERS=OFF"
+#                     "\n  INSTALL_SHARED_LIBS=ON"
+#                     "\nRecommended options for generation of development package:"
+#                     "\n  BUILD_SHARED_LIBS=ON"
+#                     "\n  BUILD_STATIC_LIBS=ON"
+#                     "\n  INSTALL_HEADERS=ON"
+#                     "\n  INSTALL_SHARED_LIBS=ON"
+#                     "\n  INSTALL_STATIC_LIBS=ON"
+#    )
+#  endif ()
+#
+#  # default package generators
+#  if (APPLE)
+#    set (PACKAGE_GENERATOR        "PackageMaker")
+#    set (PACKAGE_SOURCE_GENERATOR "TGZ;ZIP")
+#  elseif (UNIX)
+#    set (PACKAGE_GENERATOR        "DEB;RPM")
+#    set (PACKAGE_SOURCE_GENERATOR "TGZ;ZIP")
+#  else ()
+#    set (PACKAGE_GENERATOR        "ZIP")
+#    set (PACKAGE_SOURCE_GENERATOR "ZIP")
+#  endif ()
+#
+#  # used package generators
+#  set (CPACK_GENERATOR        "${PACKAGE_GENERATOR}"        CACHE STRING "List of binary package generators (CPack).")
+#  set (CPACK_SOURCE_GENERATOR "${PACKAGE_SOURCE_GENERATOR}" CACHE STRING "List of source package generators (CPack).")
+#  mark_as_advanced (CPACK_GENERATOR CPACK_SOURCE_GENERATOR)
+#
+#  # some package generators (e.g., PackageMaker) do not allow .md extension
+#  configure_file ("${CMAKE_CURRENT_LIST_DIR}/README.md" "${CMAKE_CURRENT_BINARY_DIR}/README.txt" COPYONLY)
+#
+#  # common package information
+#  set (CPACK_PACKAGE_VENDOR              "Andreas Schuh")
+#  set (CPACK_PACKAGE_CONTACT             "google-gflags@googlegroups.com")
+#  set (CPACK_PACKAGE_NAME                "${PACKAGE_NAME}")
+#  set (CPACK_PACKAGE_VERSION             "${PACKAGE_VERSION}")
+#  set (CPACK_PACKAGE_VERSION_MAJOR       "${PACKAGE_VERSION_MAJOR}")
+#  set (CPACK_PACKAGE_VERSION_MINOR       "${PACKAGE_VERSION_MINOR}")
+#  set (CPACK_PACKAGE_VERSION_PATCH       "${PACKAGE_VERSION_PATCH}")
+#  set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PACKAGE_DESCRIPTION}")
+#  set (CPACK_RESOURCE_FILE_WELCOME       "${CMAKE_CURRENT_BINARY_DIR}/README.txt")
+#  set (CPACK_RESOURCE_FILE_LICENSE       "${CMAKE_CURRENT_LIST_DIR}/COPYING.txt")
+#  set (CPACK_PACKAGE_DESCRIPTION_FILE    "${CMAKE_CURRENT_BINARY_DIR}/README.txt")
+#  set (CPACK_INSTALL_PREFIX              "${CMAKE_INSTALL_PREFIX}")
+#  set (CPACK_OUTPUT_FILE_PREFIX          packages)
+#  set (CPACK_PACKAGE_RELOCATABLE         TRUE)
+#  set (CPACK_MONOLITHIC_INSTALL          TRUE)
+#
+#  # RPM package information -- used in cmake/package.cmake.in also for DEB
+#  set (CPACK_RPM_PACKAGE_GROUP   "Development/Libraries")
+#  set (CPACK_RPM_PACKAGE_LICENSE "BSD")
+#  set (CPACK_RPM_PACKAGE_URL     "${PACKAGE_URL}")
+#  set (CPACK_RPM_CHANGELOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/ChangeLog.txt")
+#
+#  if (INSTALL_HEADERS)
+#    set (CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_LIST_DIR}/doc/index.html")
+#  else ()
+#    set (CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_LIST_DIR}/cmake/README_runtime.txt")
+#  endif ()
+#
+#  # system/architecture
+#  if (WINDOWS)
+#    if (CMAKE_CL_64)
+#      set (CPACK_SYSTEM_NAME "win64")
+#    else ()
+#      set (CPACK_SYSTEM_NAME "win32")
+#    endif ()
+#    set (CPACK_PACKAGE_ARCHITECTURE)
+#  elseif (APPLE)
+#    set (CPACK_PACKAGE_ARCHITECTURE darwin)
+#  else ()
+#    string (TOLOWER "${CMAKE_SYSTEM_NAME}" CPACK_SYSTEM_NAME)
+#    if (CMAKE_CXX_FLAGS MATCHES "-m32")
+#      set (CPACK_PACKAGE_ARCHITECTURE i386)
+#    else ()
+#      execute_process (
+#        COMMAND         dpkg --print-architecture
+#        RESULT_VARIABLE RV
+#        OUTPUT_VARIABLE CPACK_PACKAGE_ARCHITECTURE
+#      )
+#      if (RV EQUAL 0)
+#	      string (STRIP "${CPACK_PACKAGE_ARCHITECTURE}" CPACK_PACKAGE_ARCHITECTURE)
+#      else ()
+#        execute_process (COMMAND uname -m OUTPUT_VARIABLE CPACK_PACKAGE_ARCHITECTURE)
+#        if (CPACK_PACKAGE_ARCHITECTURE MATCHES "x86_64")
+#	        set (CPACK_PACKAGE_ARCHITECTURE amd64)
+#        else ()
+#          set (CPACK_PACKAGE_ARCHITECTURE i386)
+#        endif ()
+#      endif ()
+#    endif ()
+#  endif ()
+#
+#  # source package settings
+#  set (CPACK_SOURCE_TOPLEVEL_TAG      "source")
+#  set (CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
+#  set (CPACK_SOURCE_IGNORE_FILES      "/\\\\.git/;\\\\.swp$;\\\\.#;/#;\\\\.*~;cscope\\\\.*;/[Bb]uild[.+-_a-zA-Z0-9]*/")
+#
+#  # default binary package settings
+#  set (CPACK_INCLUDE_TOPLEVEL_DIRECTORY TRUE)
+#  set (CPACK_PACKAGE_FILE_NAME          "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}")
+#  if (CPACK_PACKAGE_ARCHITECTURE)
+#    set (CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}-${CPACK_PACKAGE_ARCHITECTURE}")
+#  endif ()
+#
+#  # generator specific configuration file
+#  #
+#  # allow package maintainers to use their own configuration file
+#  # $ cmake -DCPACK_PROJECT_CONFIG_FILE:FILE=/path/to/package/config
+#  if (NOT CPACK_PROJECT_CONFIG_FILE)
+#    configure_file (
+#      "${CMAKE_CURRENT_LIST_DIR}/cmake/package.cmake.in"
+#      "${PROJECT_BINARY_DIR}/${PACKAGE_NAME}-package.cmake" @ONLY
+#    )
+#    set (CPACK_PROJECT_CONFIG_FILE "${PROJECT_BINARY_DIR}/${PACKAGE_NAME}-package.cmake")
+#  endif ()
+#
+#  include (CPack)
+#
+#endif () # BUILD_PACKAGING
+#
+#if (NOT GFLAGS_IS_SUBPROJECT AND NOT TARGET uninstall)
+#  configure_file (
+#    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
+#    "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" @ONLY
+#  )
+#  add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
+#endif ()
+
+##################################################################################
 # packaging
+#####################################################################################
+option(BUILD_PACKAGING "build packaging" ON)
 if (BUILD_PACKAGING)
-
-  if (NOT BUILD_SHARED_LIBS AND NOT INSTALL_HEADERS)
-    message (WARNING "Package will contain static libraries without headers!"
-                     "\nRecommended options for generation of runtime package:"
-                     "\n  BUILD_SHARED_LIBS=ON"
-                     "\n  BUILD_STATIC_LIBS=OFF"
-                     "\n  INSTALL_HEADERS=OFF"
-                     "\n  INSTALL_SHARED_LIBS=ON"
-                     "\nRecommended options for generation of development package:"
-                     "\n  BUILD_SHARED_LIBS=ON"
-                     "\n  BUILD_STATIC_LIBS=ON"
-                     "\n  INSTALL_HEADERS=ON"
-                     "\n  INSTALL_SHARED_LIBS=ON"
-                     "\n  INSTALL_STATIC_LIBS=ON"
-    )
-  endif ()
-
   # default package generators
   if (APPLE)
     set (PACKAGE_GENERATOR        "PackageMaker")
     set (PACKAGE_SOURCE_GENERATOR "TGZ;ZIP")
   elseif (UNIX)
-    set (PACKAGE_GENERATOR        "DEB;RPM")
+    set (PACKAGE_GENERATOR        "DEB") # RPM
     set (PACKAGE_SOURCE_GENERATOR "TGZ;ZIP")
   else ()
     set (PACKAGE_GENERATOR        "ZIP")
@@ -646,8 +772,8 @@ if (BUILD_PACKAGING)
   configure_file ("${CMAKE_CURRENT_LIST_DIR}/README.md" "${CMAKE_CURRENT_BINARY_DIR}/README.txt" COPYONLY)
 
   # common package information
-  set (CPACK_PACKAGE_VENDOR              "Andreas Schuh")
-  set (CPACK_PACKAGE_CONTACT             "google-gflags@googlegroups.com")
+  set (CPACK_PACKAGE_VENDOR              "trunk")
+  set (CPACK_PACKAGE_CONTACT             "cater@trunk.tech")
   set (CPACK_PACKAGE_NAME                "${PACKAGE_NAME}")
   set (CPACK_PACKAGE_VERSION             "${PACKAGE_VERSION}")
   set (CPACK_PACKAGE_VERSION_MAJOR       "${PACKAGE_VERSION_MAJOR}")
@@ -668,11 +794,13 @@ if (BUILD_PACKAGING)
   set (CPACK_RPM_PACKAGE_URL     "${PACKAGE_URL}")
   set (CPACK_RPM_CHANGELOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/ChangeLog.txt")
 
-  if (INSTALL_HEADERS)
-    set (CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_LIST_DIR}/doc/index.html")
-  else ()
-    set (CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_LIST_DIR}/cmake/README_runtime.txt")
-  endif ()
+  # if (INSTALL_HEADERS)
+  #   set (CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_LIST_DIR}/doc/index.html")
+  # else ()
+  #   set (CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_LIST_DIR}/cmake/README_runtime.txt")
+  # endif ()
+
+  set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 
   # system/architecture
   if (WINDOWS)
@@ -690,16 +818,16 @@ if (BUILD_PACKAGING)
       set (CPACK_PACKAGE_ARCHITECTURE i386)
     else ()
       execute_process (
-        COMMAND         dpkg --print-architecture
-        RESULT_VARIABLE RV
-        OUTPUT_VARIABLE CPACK_PACKAGE_ARCHITECTURE
+              COMMAND         dpkg --print-architecture
+              RESULT_VARIABLE RV
+              OUTPUT_VARIABLE CPACK_PACKAGE_ARCHITECTURE
       )
       if (RV EQUAL 0)
-	      string (STRIP "${CPACK_PACKAGE_ARCHITECTURE}" CPACK_PACKAGE_ARCHITECTURE)
+        string (STRIP "${CPACK_PACKAGE_ARCHITECTURE}" CPACK_PACKAGE_ARCHITECTURE)
       else ()
         execute_process (COMMAND uname -m OUTPUT_VARIABLE CPACK_PACKAGE_ARCHITECTURE)
         if (CPACK_PACKAGE_ARCHITECTURE MATCHES "x86_64")
-	        set (CPACK_PACKAGE_ARCHITECTURE amd64)
+          set (CPACK_PACKAGE_ARCHITECTURE amd64)
         else ()
           set (CPACK_PACKAGE_ARCHITECTURE i386)
         endif ()
@@ -725,8 +853,8 @@ if (BUILD_PACKAGING)
   # $ cmake -DCPACK_PROJECT_CONFIG_FILE:FILE=/path/to/package/config
   if (NOT CPACK_PROJECT_CONFIG_FILE)
     configure_file (
-      "${CMAKE_CURRENT_LIST_DIR}/cmake/package.cmake.in"
-      "${PROJECT_BINARY_DIR}/${PACKAGE_NAME}-package.cmake" @ONLY
+            "${CMAKE_CURRENT_LIST_DIR}/cmake/package.cmake.in"
+            "${PROJECT_BINARY_DIR}/${PACKAGE_NAME}-package.cmake" @ONLY
     )
     set (CPACK_PROJECT_CONFIG_FILE "${PROJECT_BINARY_DIR}/${PACKAGE_NAME}-package.cmake")
   endif ()
@@ -734,11 +862,3 @@ if (BUILD_PACKAGING)
   include (CPack)
 
 endif () # BUILD_PACKAGING
-
-if (NOT GFLAGS_IS_SUBPROJECT AND NOT TARGET uninstall)
-  configure_file (
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" @ONLY
-  )
-  add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
-endif ()
